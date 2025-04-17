@@ -149,6 +149,6 @@ contract FPair is IFPair, ReentrancyGuard {
         uint256 balance0 = balance();
         uint256 balance1 = assetBalance();
         require(balance0 > 0, "Reserve0 must be greater than zero");
-        price = (balance1) / balance0;
+        price = (balance1 * 10 ** 18) / balance0;
     }
 }

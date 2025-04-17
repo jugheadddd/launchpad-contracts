@@ -162,7 +162,6 @@ describe("Bonding Contract", function () {
             initialPurchase, // Purchase amount
             AssetToken.target
         );
-        console.log("transferResult3", initialPurchase)
 
         const receipt = await tx.wait();
         const filter = Bonding.filters.Launched();
@@ -227,9 +226,10 @@ describe("Bonding Contract", function () {
             AssetToken.target
         );
 
-        await tx.wait();
-
-        const tokenAddress = (await Bonding.tokenInfos(1)) as string;
+        const receipt = await tx.wait();
+        const launchEvent = getLaunchedEvent(receipt)
+        const pairAddress = launchEvent.args.pair;
+        const tokenAddress = launchEvent.args.token;
         expect(tokenAddress).to.be.properAddress;
 
         const tokenContract = await ethers.getContractAt("FERC20", tokenAddress);
@@ -241,20 +241,44 @@ describe("Bonding Contract", function () {
         await AssetToken.connect(user).approve(Bonding.target, ethers.parseEther("50"));
 
         // Buy token
+        const pair = await ethers.getContractAt("SyntheticPair", pairAddress, user)
+        let price = await pair.getTokenPrice()
         await Bonding.connect(user).buyWithAsset(ethers.parseEther("50"), tokenAddress, AssetToken.target);
         let newTokenBal = await tokenContract.balanceOf(await user.getAddress())
+        
         expect(newTokenBal).to.be.gt(0);
 
+        let oldPrice = price
+        price = await pair.getTokenPrice()
+        expect(price).to.be.greaterThan(oldPrice)
 
         // Buy more token. The amount received should be less than before
         // Approve more tokens for transfer
         await AssetToken.connect(user).approve(Bonding.target, ethers.parseEther("50"));
         await Bonding.connect(user).buyWithAsset(ethers.parseEther("50"), tokenAddress, AssetToken.target);
-        const oldTokenBal = newTokenBal
+        let oldTokenBal = newTokenBal
         newTokenBal = await tokenContract.balanceOf(await user.getAddress())
         const tokensReceivedSecond = newTokenBal - oldTokenBal
         // The number of tokens received from this second sale should be less than the first sale.
         expect(tokensReceivedSecond).to.be.lt(oldTokenBal);
+
+        oldPrice = price
+        price = await pair.getTokenPrice()
+        expect(price).to.be.greaterThan(oldPrice)
+
+        // Expect that the price reflected is correct.
+        const currentAssetBalance = await AssetToken.balanceOf(await user.getAddress())
+        await AssetToken.connect(user).approve(Bonding.target, price);
+        await Bonding.connect(user).buyWithAsset(price, tokenAddress, AssetToken.target);
+        
+        oldTokenBal = newTokenBal
+        newTokenBal = await tokenContract.balanceOf(await user.getAddress())
+        const diff = newTokenBal - oldTokenBal
+
+        // User should have gotten about 1 token (assuming token also has 18 decimal places)
+        // We give slippage about 10%
+        expect(diff).to.be.greaterThan(ethers.parseEther("0.90"))
+        expect(diff).to.be.lessThan(ethers.parseEther("1.1"))
     });
 
     it("should allow a user to buy and sell tokens using SEI", async function () {
