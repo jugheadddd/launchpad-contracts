@@ -221,7 +221,6 @@ contract Bonding is
             address(this),
             purchaseAmount
         );
-
         return _launch(_name, _ticker, assetToken, initialPurchase, assetLaunchFee);       
     }
 
@@ -237,7 +236,7 @@ contract Bonding is
         require(approved);
 
         // Ensure the router can use all of the input assetToken as well
-        token.forceApprove(address(router), initialPurchase + initialLiquidity);
+        IERC20(assetToken).forceApprove(address(router), initialPurchase + initialLiquidity);
         
         // Seed the pool with all the new token, and the initialLiquidity (fee)
         router.addInitialLiquidity(address(token), assetToken, supply, initialLiquidity);

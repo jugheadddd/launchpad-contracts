@@ -65,7 +65,6 @@ describe("Bonding Contract", function () {
         DragonswapRouter = await ethers.getContractAt("IDragonswapRouter", dragonswapRouter);
         DragonswapFactory = await ethers.getContractAt("IDragonswapFactory", dragonswapFactory);
 
-
         // Define Roles
         const CREATOR_ROLE = ethers.keccak256(ethers.toUtf8Bytes("CREATOR_ROLE"));
         const EXECUTOR_ROLE = ethers.keccak256(ethers.toUtf8Bytes("EXECUTOR_ROLE"));
@@ -92,7 +91,7 @@ describe("Bonding Contract", function () {
             Factory.target,   // factory address
             Router.target,    // router address
             WSEI.target,      // address of WSEI contract that helps us wrap SEI
-            ethers.parseEther("100"),               // asset launch fee amount
+            ethers.parseEther("102"),               // asset launch fee amount
             ethers.parseEther("100"),               // sei launch fee amount
             initialSupply, // initial supply
             maxTx, // maximum percentage of each token that can be bought in one tx.
@@ -149,23 +148,23 @@ describe("Bonding Contract", function () {
     it("should allow user to launch a token", async function () {
         // Send some token from owner to user
         const launchFee = await Bonding.assetLaunchFee()
-
-        const transferResult = await AssetToken.connect(owner).transfer(await user.getAddress(), launchFee)
+        const initialPurchase = launchFee
+        const transferResult = await AssetToken.connect(owner).transfer(await user.getAddress(), initialPurchase)
         await transferResult.wait()
-
         // User approves Bonding contract to spend AssetToken so it can seed the liquidity pool with the initial purchase.
-        await AssetToken.connect(user).approve(Bonding.target, launchFee);
-        
+        const approveResult = await AssetToken.connect(user).approve(Bonding.target, initialPurchase);
+        await approveResult.wait()
+
         // Launch a token
         const tx = await Bonding.connect(user).launchWithAsset(
             "Test Token",
             "TST",
-            launchFee, // Purchase amount
+            initialPurchase, // Purchase amount
             AssetToken.target
         );
+        console.log("transferResult3", initialPurchase)
 
         const receipt = await tx.wait();
-
         const filter = Bonding.filters.Launched();
         const events = await Bonding.queryFilter(filter, "latest");
 

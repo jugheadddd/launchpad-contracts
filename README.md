@@ -13,7 +13,7 @@ This repo contains contracts used for a fair token launch mechanism
 
 2. This framework relies on access to dragonswap contracts on testnet. Spin up a local fork of testnet by running `npx hardhat node --fork https://evm-rpc-testnet.sei-apis.com`
 
-3. To run your tests, run `npx hardhat test` to run all tests, or run `npx hardhat test <path_to_test>` to run a specific test.
+3. To run your tests, run `npx hardhat test --network testnet` to run all tests, or run `npx hardhat test <path_to_test>` to run a specific test.
 
 ## Contracts and Architecture
 
