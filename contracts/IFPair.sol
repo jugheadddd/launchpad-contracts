@@ -22,6 +22,8 @@ interface IFPair {
     
     function tokenB() external view returns (address);
 
+    function getTokenPrice() external view returns (uint256 price);
+
     function swap(
         uint256 amount0In,
         uint256 amount0Out,

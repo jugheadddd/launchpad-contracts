@@ -144,4 +144,11 @@ contract FPair is IFPair, ReentrancyGuard {
 
         amountOut = (amountIn * reserveOut) / (reserveIn + amountIn);
     }
+
+    function getTokenPrice() external view returns (uint256 price) {
+        uint256 balance0 = balance();
+        uint256 balance1 = assetBalance();
+        require(balance0 > 0, "Reserve0 must be greater than zero");
+        price = (balance1) / balance0;
+    }
 }

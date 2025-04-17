@@ -237,11 +237,12 @@ contract Bonding is
         require(approved);
 
         // Ensure the router can use all of the input assetToken as well
-        IERC20(assetToken).forceApprove(address(router), initialPurchase + initialLiquidity);
-
+        token.forceApprove(address(router), initialPurchase + initialLiquidity);
+        
         // Seed the pool with all the new token, and the initialLiquidity (fee)
         router.addInitialLiquidity(address(token), assetToken, supply, initialLiquidity);
 
+        uint256 tokenPrice = IFPair(_pair).getTokenPrice();
         // Set up all the token data based on the initialLiquidity added
         Data memory _data = Data({
             token: address(token),
@@ -249,12 +250,12 @@ contract Bonding is
             _name: _name,
             ticker: _ticker,
             supply: supply,
-            price: supply / initialLiquidity,
+            price: tokenPrice,
             marketCap: initialLiquidity,
             liquidity: initialLiquidity * 2,
             volume: 0,
             volume24H: 0,
-            prevPrice: supply / initialLiquidity,
+            prevPrice: tokenPrice,
             lastUpdated: block.timestamp
         });
 
@@ -352,7 +353,7 @@ contract Bonding is
         uint256 liquidity = newReserveB * 2;
         uint256 mCap = (tokenInfo[tokenAddress].data.supply * newReserveB) /
             newReserveA;
-        uint256 price = newReserveA / newReserveB;
+        uint256 price = pair.getTokenPrice();
         uint256 volume = duration > 86400
             ? amount1Out
             : tokenInfo[tokenAddress].data.volume24H + amount1Out;
@@ -429,7 +430,7 @@ contract Bonding is
         uint256 liquidity = newReserveB * 2;
         uint256 mCap = (tokenInfo[tokenAddress].data.supply * newReserveB) /
             newReserveA;
-        uint256 price = newReserveA / newReserveB;
+        uint256 price = pair.getTokenPrice();
         uint256 volume = duration > 86400
             ? amount1In
             : tokenInfo[tokenAddress].data.volume24H + amount1In;
