@@ -13,11 +13,13 @@ This repo contains contracts used for a fair token launch mechanism
 
 2. This framework relies on access to dragonswap contracts on testnet. Spin up a local fork of testnet by running `npx hardhat node --fork https://evm-rpc-testnet.sei-apis.com`
 
-3. To run your tests, run `npx hardhat test --network testnet` to run all tests, or run `npx hardhat test <path_to_test>` to run a specific test.
+3. To run your tests, run `npx hardhat test` to run all tests, or run `npx hardhat test <path_to_test>` to run a specific test.
+
 
 ## Contracts and Architecture
 
 To deploy these contracts, you would need to deploy, in order,
+
 1. WSEI Contract
 2. AssetToken (If using an underlying token other than SEI)
 3. FFactory Contract
@@ -25,6 +27,13 @@ To deploy these contracts, you would need to deploy, in order,
 5. Bonding Contract.
 
 TODO: Should probably provide a script here to deploy these sequentially on a chosen network and return the addresses.
+
+
+## Deployment Script
+
+```bash
+npx hardhat ignition deploy ignition/modules/AIDEN.ts --network testnet
+```
 
 ## Calling the contracts
 
@@ -76,3 +85,4 @@ When the token hits the `gradThreshold`, a few things happen:
 4. A corresponding amount of Token is added into the new dragonswap pool (The amount of token calculated will keep the price of the token on the Dragonswap Pool similar to that of the bonding curve)
 5. Any remaining token is burnt (We do not maintain a treasury or DAO)
 6. Futher trading of this token will cease. All future trades should be with Dragonswap.
+

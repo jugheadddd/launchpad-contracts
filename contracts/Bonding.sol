@@ -200,7 +200,6 @@ contract Bonding is
     }
 
     // Method for launching a new token, using another ERC20 token as the paired token in the pool.
-    // Handles the transfer of tokens from user to itself, as well as fees, then launches the token
     function launchWithAsset(
         string memory _name,
         string memory _ticker,
@@ -221,6 +220,7 @@ contract Bonding is
             address(this),
             purchaseAmount
         );
+
         return _launch(_name, _ticker, assetToken, initialPurchase, assetLaunchFee);       
     }
 
@@ -237,11 +237,10 @@ contract Bonding is
 
         // Ensure the router can use all of the input assetToken as well
         IERC20(assetToken).forceApprove(address(router), initialPurchase + initialLiquidity);
-        
+
         // Seed the pool with all the new token, and the initialLiquidity (fee)
         router.addInitialLiquidity(address(token), assetToken, supply, initialLiquidity);
 
-        uint256 tokenPrice = IFPair(_pair).getTokenPrice();
         // Set up all the token data based on the initialLiquidity added
         Data memory _data = Data({
             token: address(token),
@@ -249,12 +248,12 @@ contract Bonding is
             _name: _name,
             ticker: _ticker,
             supply: supply,
-            price: tokenPrice,
+            price: supply / initialLiquidity,
             marketCap: initialLiquidity,
             liquidity: initialLiquidity * 2,
             volume: 0,
             volume24H: 0,
-            prevPrice: tokenPrice,
+            prevPrice: supply / initialLiquidity,
             lastUpdated: block.timestamp
         });
 
@@ -298,6 +297,7 @@ contract Bonding is
         return (address(token), _pair, n);
     }
 
+=======
     // Sells the given token (at tokenAddress) in exchange for assetToken.
     // This token must have been launched using assetToken.
     function sellForAsset(
@@ -352,7 +352,8 @@ contract Bonding is
         uint256 liquidity = newReserveB * 2;
         uint256 mCap = (tokenInfo[tokenAddress].data.supply * newReserveB) /
             newReserveA;
-        uint256 price = pair.getTokenPrice();
+
+        uint256 price = newReserveA / newReserveB;
         uint256 volume = duration > 86400
             ? amount1Out
             : tokenInfo[tokenAddress].data.volume24H + amount1Out;
@@ -376,8 +377,10 @@ contract Bonding is
         return _amountReceived;
     }
 
+
     // Buys the given token (at tokenAddress) in exchange for assetToken.
     // This token must have been launched using assetToken.
+
     // Transfers asset tokens from user to this contract, then executes the buy
     function buyWithAsset(
         uint256 amountIn,
@@ -429,7 +432,7 @@ contract Bonding is
         uint256 liquidity = newReserveB * 2;
         uint256 mCap = (tokenInfo[tokenAddress].data.supply * newReserveB) /
             newReserveA;
-        uint256 price = pair.getTokenPrice();
+        uint256 price = newReserveA / newReserveB;
         uint256 volume = duration > 86400
             ? amount1In
             : tokenInfo[tokenAddress].data.volume24H + amount1In;
@@ -513,11 +516,13 @@ contract Bonding is
         return _launch(_name, _ticker, address(wsei), initialPurchase, seiLaunchFee);       
     }
 
+
     // Helper function that is called when the token hits its graduation threshold.
     // 1. Pulls liquidity from the currently deployed pool
     // 2. Creates a new pool on Dragonswap
     // 3. Deposits all the assetToken as well as a proportionate amount of token from the pool so that price remains the same on Dragonswap
     // 4. Burns the remaining token that was not deposited in the pool.
+
     function _graduateToken(address tokenAddress, address assetToken) private {
         Token storage _token = tokenInfo[tokenAddress];
 
