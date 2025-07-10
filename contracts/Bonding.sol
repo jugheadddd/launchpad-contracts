@@ -227,6 +227,11 @@ contract Bonding is
 
         address _pair = factory.createPair(address(token), assetToken);
 
+        // Whitelist launchpad contracts to allow trading during bonding phase
+        token.addToWhitelist(address(router));
+        token.addToWhitelist(address(this)); // Bonding contract itself
+        token.addToWhitelist(_pair); // The bonding pair contract
+
         // Ensure the router can spend all of it so it can deposit the tokens into the pool
         bool approved = _approval(address(router), address(token), supply);
         require(approved);
@@ -240,7 +245,7 @@ contract Bonding is
         // Set up all the token data based on the initialLiquidity added
         Data memory _data = Data({
             token: address(token),
-            name: string.concat("aiden ", _name),
+            name: string.concat("", _name),
             _name: _name,
             ticker: _ticker,
             supply: supply,
@@ -544,6 +549,9 @@ contract Bonding is
 
         // Transfer assets from old pool to this contract
         (uint256 tokenAmount, uint256 assetAmount) = router.graduatePool(tokenAddress, assetToken); // Sends assetToken to Bonding contract
+
+        // Unlock the token BEFORE adding liquidity to allow transfers to Dragonswap
+        FERC20(tokenAddress).unlock();
 
         // Approve router
         SafeERC20.forceApprove(

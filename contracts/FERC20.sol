@@ -14,8 +14,15 @@ contract FERC20 is ERC20, ERC20Burnable, Ownable {
     address public taxReceiver;
     uint256 public taxBasisPoints; // 100 = 1%, 1000 = 10%, etc.
 
+    // Lock mechanism
+    bool public isLocked;
+    mapping(address => bool) public isWhitelisted;
+
     event MaxTxUpdated(uint256 _maxTx);
     event TaxSettingsUpdated(address receiver, uint256 bps);
+    event TokenLocked();
+    event TokenUnlocked();
+    event AddressWhitelisted(address indexed addr);
     
     constructor(
         string memory name_,
@@ -27,6 +34,9 @@ contract FERC20 is ERC20, ERC20Burnable, Ownable {
         isExcludedFromMaxTx[msg.sender] = true;
         isExcludedFromMaxTx[address(this)] = true;
         _updateMaxTx(_maxTx);
+        
+        // Token starts locked - only launchpad contracts can transfer until graduation
+        isLocked = true;
     }
 
     function _updateMaxTx(uint256 _maxTx) internal {
@@ -59,14 +69,34 @@ contract FERC20 is ERC20, ERC20Burnable, Ownable {
         emit TaxSettingsUpdated(_receiver, _taxBps);
     }
 
+    function addToWhitelist(address addr) external onlyOwner {
+        require(addr != address(0), "ERC20: Cannot whitelist zero address");
+        isWhitelisted[addr] = true;
+        emit AddressWhitelisted(addr);
+    }
+
+    function lock() external onlyOwner {
+        require(!isLocked, "Token is already locked");
+        isLocked = true;
+        emit TokenLocked();
+    }
+
+    function unlock() external onlyOwner {
+        require(isLocked, "Token is not locked");
+        isLocked = false;
+        emit TokenUnlocked();
+    }
+
     function transfer(address recipient, uint256 amount) public override returns (bool) {
         _checkMaxTx(_msgSender(), amount);
+        _checkLock(_msgSender(), recipient);
         _transferWithTax(_msgSender(), recipient, amount);
         return true;
     }
 
     function transferFrom(address sender, address recipient, uint256 amount) public override returns (bool) {
         _checkMaxTx(sender, amount);
+        _checkLock(sender, recipient);
         address spender = _msgSender();
         _spendAllowance(sender, spender, amount);
         _transferWithTax(sender, recipient, amount);
@@ -82,6 +112,12 @@ contract FERC20 is ERC20, ERC20Burnable, Ownable {
     function _checkMaxTx(address sender, uint256 amount) internal view {
         if (!isExcludedFromMaxTx[sender]) {
             require(amount <= _maxTxAmount, "Exceeds MaxTx");
+        }
+    }
+
+    function _checkLock(address from, address to) internal view {
+        if (isLocked) {
+            require(isWhitelisted[from] || isWhitelisted[to], "Token is locked");
         }
     }
 
